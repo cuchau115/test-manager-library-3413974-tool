@@ -70,3 +70,9 @@ Cuando esté disponible la imagen y el servicio de Compose (`TOOL-04`), se ejecu
 ```sh
 docker compose run --rm tool
 ```
+
+Las pruebas del cliente se ejecutan con Node dentro de Docker, desde `infra`:
+
+```sh
+docker compose -f ../test-manager-library-3413974-tool/docker-compose.test.yml run --rm tool-tests
+```

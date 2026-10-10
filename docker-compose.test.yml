@@ -1,0 +1,7 @@
+services:
+  tool-tests:
+    image: node:20-alpine
+    working_dir: /workspace
+    volumes:
+      - .:/workspace:ro
+    command: npm test
