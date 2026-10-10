@@ -1,0 +1,15 @@
+# AGENTS.md — repo `tool` (sembrador de demostración)
+
+> **Lee primero el plan maestro completo:** `../AGENTS.md` (raíz del proyecto). Copia canónica
+> versionada: `../test-manager-library-3413974-docs/AGENTS.md`. Este archivo es solo un puntero.
+
+## Reglas duras (resumen; detalle en el maestro §1)
+- El sembrador usa **la API**, nunca SQL directo.
+- Para los 3 vencidos, seguir **ADR-RL-006** (`DOC-02`); si no existe, parar y avisar.
+- Todo con **Docker** (`docker compose run --rm tool`).
+- **Commits pequeños** (`tool: …`) y **push** al fork `cuchau115/test-manager-library-3413974-tool`.
+- Toda tarea exige **evidencia** (`GET /books` ≥40, `GET /members` 10, `GET /loans/overdue` 3).
+
+## Tareas de este repo (maestro §9.10)
+`TOOL-01`…`TOOL-04`. Modelo: `opencode/deepseek-v4-flash`.
+Dependencias: `TOOL-01`←DOC-02; `TOOL-02`←T-16.6; `TOOL-03`←T-16.7.
