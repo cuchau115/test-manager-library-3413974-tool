@@ -213,6 +213,24 @@ describe("ApiClient", () => {
     await assert.rejects(api.login("admin", "secret"), /no cumple el contrato/);
   });
 
+  it("recorre páginas sin exceder el límite de 50 elementos", async () => {
+    const api = new ApiClient(baseUrl);
+    const requestedPages = [];
+    const items = await api.listAllPages(async (page, size) => {
+      assert.equal(size, 50);
+      requestedPages.push(page);
+      return {
+        items: page === 1 ? Array.from({ length: 50 }, (_, index) => index) : [50],
+        page,
+        size,
+        total: 51,
+      };
+    });
+
+    assert.deepEqual(requestedPages, [1, 2]);
+    assert.equal(items.length, 51);
+  });
+
   it("ejecuta el script base y no revela el token", async () => {
     const { stdout, stderr } = await execFileAsync(process.execPath, ["src/index.mjs"], {
       cwd: new URL("..", import.meta.url),
@@ -228,6 +246,7 @@ describe("ApiClient", () => {
     assert.match(stdout, /Salud de la API: ok/);
     assert.match(stdout, /Sembrado completado: 40 libros creados/);
     assert.match(stdout, /15 préstamos creados/);
+    assert.match(stdout, /40 libros, 10 socios/);
     assert.match(stdout, /3 líneas vencidas y 1 filas de reporte/);
     assert.equal(stderr, "");
     assert.doesNotMatch(stdout, /test-token/);
