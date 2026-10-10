@@ -10,14 +10,28 @@ let server;
 let baseUrl;
 
 before(async () => {
+  const state = {
+    categories: [
+      { id: "11111111-1111-4111-8111-111111111111", name: "Novela" },
+      { id: "22222222-2222-4222-8222-222222222222", name: "Ciencia" },
+      { id: "33333333-3333-4333-8333-333333333333", name: "Historia" },
+      { id: "44444444-4444-4444-8444-444444444444", name: "Tecnología" },
+      { id: "55555555-5555-4555-8555-555555555555", name: "Filosofía" },
+    ],
+    books: [],
+    members: [],
+    loans: [],
+  };
+
   server = createServer(async (request, response) => {
+    const url = new URL(request.url, "http://localhost");
     const chunks = [];
     for await (const chunk of request) {
       chunks.push(chunk);
     }
     const body = chunks.length === 0 ? null : JSON.parse(Buffer.concat(chunks).toString());
 
-    if (request.url === "/api/v1/auth/login" && request.method === "POST") {
+    if (url.pathname === "/api/v1/auth/login" && request.method === "POST") {
       if (body.username === "admin" && body.password === "secret") {
         response.writeHead(200, { "Content-Type": "application/json" });
         response.end(JSON.stringify({
@@ -37,15 +51,67 @@ before(async () => {
       return;
     }
 
-    if (request.url === "/api/v1/health") {
+    if (url.pathname === "/api/v1/health") {
       response.writeHead(200, { "Content-Type": "application/json" });
       response.end(JSON.stringify({ status: "ok" }));
       return;
     }
 
+    if (url.pathname === "/api/v1/categories" && request.method === "GET") {
+      response.writeHead(200, { "Content-Type": "application/json" });
+      response.end(JSON.stringify(state.categories));
+      return;
+    }
+
+    if (url.pathname === "/api/v1/books" && request.method === "GET") {
+      response.writeHead(200, { "Content-Type": "application/json" });
+      response.end(JSON.stringify({ items: state.books, page: 1, size: 50, total: state.books.length }));
+      return;
+    }
+
+    if (url.pathname === "/api/v1/books" && request.method === "POST") {
+      const item = {
+        id: `book-${state.books.length + 1}`,
+        ...body,
+      };
+      state.books.push(item);
+      response.writeHead(201, { "Content-Type": "application/json" });
+      response.end(JSON.stringify(item));
+      return;
+    }
+
+    if (url.pathname === "/api/v1/members" && request.method === "GET") {
+      response.writeHead(200, { "Content-Type": "application/json" });
+      response.end(JSON.stringify({ items: state.members, page: 1, size: 50, total: state.members.length }));
+      return;
+    }
+
+    if (url.pathname === "/api/v1/members" && request.method === "POST") {
+      const item = {
+        id: `member-${state.members.length + 1}`,
+        ...body,
+      };
+      state.members.push(item);
+      response.writeHead(201, { "Content-Type": "application/json" });
+      response.end(JSON.stringify(item));
+      return;
+    }
+
+    if (url.pathname === "/api/v1/loans" && request.method === "POST") {
+      const item = {
+        id: `loan-${state.loans.length + 1}`,
+        ...body,
+        status: "open",
+      };
+      state.loans.push(item);
+      response.writeHead(201, { "Content-Type": "application/json" });
+      response.end(JSON.stringify(item));
+      return;
+    }
+
     if (request.url === "/api/v1/books" && request.headers.authorization === "Bearer test-token") {
       response.writeHead(200, { "Content-Type": "application/json" });
-      response.end(JSON.stringify({ items: [] }));
+      response.end(JSON.stringify({ items: state.books, page: 1, size: 50, total: state.books.length }));
       return;
     }
 
@@ -73,7 +139,7 @@ describe("ApiClient", () => {
     const session = await api.login("admin", "secret");
 
     assert.deepEqual(session, { role: "admin", expiresIn: 28800 });
-    assert.deepEqual(await api.request("books"), { items: [] });
+    assert.deepEqual(await api.request("books"), { items: [], page: 1, size: 50, total: 0 });
   });
 
   it("consulta salud sin token", async () => {
@@ -121,6 +187,8 @@ describe("ApiClient", () => {
 
     assert.match(stdout, /Login correcto para "admin" \(rol: admin\)/);
     assert.match(stdout, /Salud de la API: ok/);
+    assert.match(stdout, /Sembrado completado: 40 libros creados/);
+    assert.match(stdout, /15 préstamos creados/);
     assert.equal(stderr, "");
     assert.doesNotMatch(stdout, /test-token/);
   });

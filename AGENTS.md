@@ -10,6 +10,10 @@
 - **Commits pequeños** (`tool: …`) y **push** al fork `cuchau115/test-manager-library-3413974-tool`.
 - Toda tarea exige **evidencia** (`GET /books` ≥40, `GET /members` 10, `GET /loans/overdue` 3).
 
+## Estado actual del trabajo
+- [*] `TOOL-01` completado: cliente HTTP + script base del sembrador, login admin, salud, manejo de errores del contrato y validación con Docker (`node --test`).
+- [ ] `TOOL-02`…`TOOL-04` pendientes: la API real debe estar operativa para sembrar libros/socios/préstamos y validar resultados reales contra `/books`, `/members` y `/loans/overdue`.
+
 ## Tareas de este repo (maestro §9.10)
 `TOOL-01`…`TOOL-04`. Modelo: `opencode/deepseek-v4-flash`.
 Dependencias: `TOOL-01`←DOC-02; `TOOL-02`←T-16.6; `TOOL-03`←T-16.7.

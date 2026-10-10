@@ -14,21 +14,21 @@ export class ApiClient {
     this.accessToken = null;
   }
 
-  async request(path, { method = "GET", body, authenticated = true } = {}) {
-    const headers = { Accept: "application/json" };
+  async request(path, { method = "GET", body, authenticated = true, headers = {} } = {}) {
+    const requestHeaders = { Accept: "application/json", ...headers };
     if (body !== undefined) {
-      headers["Content-Type"] = "application/json";
+      requestHeaders["Content-Type"] = "application/json";
     }
     if (authenticated) {
       if (!this.accessToken) {
         throw new Error("La API requiere iniciar sesión antes de esta solicitud.");
       }
-      headers.Authorization = `Bearer ${this.accessToken}`;
+      requestHeaders.Authorization = `Bearer ${this.accessToken}`;
     }
 
     const response = await fetch(new URL(path, this.baseUrl), {
       method,
-      headers,
+      headers: requestHeaders,
       body: body === undefined ? undefined : JSON.stringify(body),
     });
     const text = await response.text();
@@ -82,6 +82,70 @@ export class ApiClient {
     const result = await this.request("health", { authenticated: false });
     if (result?.status !== "ok") {
       throw new Error("La comprobación de salud de la API no devolvió status=ok.");
+    }
+    return result;
+  }
+
+  async listCategories() {
+    const result = await this.request("categories");
+    if (!Array.isArray(result)) {
+      throw new Error("GET /categories no devolvió una lista.");
+    }
+    return result;
+  }
+
+  async listBooks({ q = "", categoryId = null, page = 1, size = 50 } = {}) {
+    const query = new URLSearchParams({ page: String(page), size: String(size) });
+    if (q) query.set("q", q);
+    if (categoryId) query.set("category_id", categoryId);
+
+    const result = await this.request(`books?${query.toString()}`);
+    if (!result || typeof result !== "object" || !Array.isArray(result.items)) {
+      throw new Error("GET /books no devolvió la estructura paginada esperada.");
+    }
+    return result;
+  }
+
+  async createBook(payload) {
+    const result = await this.request("books", {
+      method: "POST",
+      body: payload,
+    });
+    if (!result || typeof result !== "object" || !result.id) {
+      throw new Error("POST /books no devolvió un libro válido.");
+    }
+    return result;
+  }
+
+  async listMembers({ q = "", page = 1, size = 50 } = {}) {
+    const query = new URLSearchParams({ page: String(page), size: String(size) });
+    if (q) query.set("q", q);
+
+    const result = await this.request(`members?${query.toString()}`);
+    if (!result || typeof result !== "object" || !Array.isArray(result.items)) {
+      throw new Error("GET /members no devolvió la estructura paginada esperada.");
+    }
+    return result;
+  }
+
+  async createMember(payload) {
+    const result = await this.request("members", {
+      method: "POST",
+      body: payload,
+    });
+    if (!result || typeof result !== "object" || !result.id) {
+      throw new Error("POST /members no devolvió un socio válido.");
+    }
+    return result;
+  }
+
+  async createLoan(payload) {
+    const result = await this.request("loans", {
+      method: "POST",
+      body: payload,
+    });
+    if (!result || typeof result !== "object" || !result.id) {
+      throw new Error("POST /loans no devolvió un préstamo válido.");
     }
     return result;
   }
