@@ -1,0 +1,12 @@
+{
+  "name": "manager-library-demo-seeder",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "seed": "node src/index.mjs",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

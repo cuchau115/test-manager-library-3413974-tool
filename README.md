@@ -49,3 +49,24 @@ antes de las 3:00 p. m.**: no se presenta nada que no esté en GitHub.
 | [`test-manager-library-3413974-page`](https://github.com/code-sena/test-manager-library-3413974-page) | Sitio público estático de presentación |
 | [`test-manager-library-3413974-infra`](https://github.com/code-sena/test-manager-library-3413974-infra) | Contenedores, red, volúmenes y motor de base de datos vacío |
 | [`test-manager-library-3413974-tool`](https://github.com/code-sena/test-manager-library-3413974-tool) | Utilidades: sembrador de datos de demostración |
+
+## Cliente de API
+
+El cliente de demostración usa Node.js 20 y `fetch` integrado, sin dependencias externas. Configura
+estas variables en el entorno del contenedor:
+
+| Variable | Uso | Valor local habitual |
+|---|---|---|
+| `API_BASE_URL` | Base versionada de la API | `http://api/api/v1/` dentro de Docker; `http://localhost:8000/api/v1/` desde el host |
+| `ADMIN_USERNAME` | Usuario administrador inicial | Configurado por `infra/.env` |
+| `ADMIN_PASSWORD` | Contraseña del administrador | Configurada por `infra/.env` |
+
+No guardes credenciales en este repositorio. El script comprueba el login del administrador y la salud
+de la API, y nunca imprime el token. El cliente añade `Authorization: Bearer` en las llamadas
+protegidas y representa los errores con `ApiError`, usando el cuerpo común del contrato.
+
+Cuando esté disponible la imagen y el servicio de Compose (`TOOL-04`), se ejecutará desde `infra`:
+
+```sh
+docker compose run --rm tool
+```
