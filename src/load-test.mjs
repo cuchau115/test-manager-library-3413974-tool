@@ -20,7 +20,11 @@ async function forEachConcurrent(items, concurrency, action) {
       await action(items[index]);
     }
   });
-  await Promise.all(workers);
+  const results = await Promise.allSettled(workers);
+  const failure = results.find((result) => result.status === "rejected");
+  if (failure) {
+    throw failure.reason;
+  }
 }
 
 async function findLoadBooks(api) {
@@ -33,7 +37,10 @@ async function findLoadBooks(api) {
     }
     books.push(...result.items);
   }
-  return books;
+  return books.filter((book) =>
+    new RegExp(`^${SEARCH_TITLE} \\d{4}$`).test(book.title) &&
+    /^978900000\d{4}$/.test(book.isbn),
+  );
 }
 
 async function deleteLoadBooks(api) {
