@@ -15,7 +15,7 @@
 - [*] `TOOL-02` completado: sembrado paginado e idempotente de al menos 40 libros y 10 socios; verificado en la API real y segunda ejecución no duplicó datos.
 - [*] `TOOL-03` completado: 15 préstamos, exactamente 3 líneas vencidas y filas de reporte verificados en la API real; fechas locales según ADR-RL-006.
 - [*] `TOOL-04` completado: imagen Docker y perfil opcional Compose integrados; `docker compose --profile tool run --rm tool` completó la siembra.
-- La verificación de rendimiento RNF-1 está en `src/load-test.mjs`; se ejecuta en Docker y retira lógicamente los libros temporales al terminar.
+- La verificación RNF-1 de `src/load-test.mjs` pasó en Docker con 5.000 libros: cinco búsquedas, máximo 20.3 ms y promedio 18.8 ms; retiró lógicamente los 4.957 libros temporales (commit `737643b`).
 
 ## Tareas de este repo (maestro §9.10)
 `TOOL-01`…`TOOL-04`. Modelo: `opencode/deepseek-v4-flash`.
