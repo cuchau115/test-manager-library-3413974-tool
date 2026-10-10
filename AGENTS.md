@@ -13,7 +13,7 @@
 ## Estado actual del trabajo
 - [*] `TOOL-01` completado: cliente HTTP + script base del sembrador, login admin, salud, manejo de errores del contrato y validación con Docker (`node --test`).
 - [/] `TOOL-02` y `TOOL-03` en progreso: sembrado paginado e idempotente de libros/socios/préstamos, fechas vencidas según ADR-RL-006 y verificación del reporte; prueba Docker 7/7 verde, falta verificar contra la API integrada.
-- [ ] `TOOL-04` pendiente: Dockerfile del tool y servicio opcional en Compose, integrado al completar TOOL-03.
+- [/] `TOOL-04` en progreso: Dockerfile creado; queda integrar el perfil de ejecución en infra y probar contra la API real.
 
 ## Tareas de este repo (maestro §9.10)
 `TOOL-01`…`TOOL-04`. Modelo: `opencode/deepseek-v4-flash`.

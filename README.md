@@ -73,10 +73,10 @@ Al terminar, el script verifica que existan al menos 40 libros y 10 socios, exac
 vencidas y filas en el reporte de más prestados. Los datos de acceso se leen de variables de entorno;
 el token no se imprime ni se guarda en disco.
 
-Cuando esté disponible la imagen y el servicio de Compose (`TOOL-04`), se ejecutará desde `infra`:
+El servicio opcional de Compose (`TOOL-04`) se ejecuta desde `infra` con el perfil `tool`:
 
 ```sh
-docker compose run --rm tool
+docker compose --profile tool run --rm tool
 ```
 
 Las pruebas del cliente se ejecutan con Node dentro de Docker, desde `infra`:
