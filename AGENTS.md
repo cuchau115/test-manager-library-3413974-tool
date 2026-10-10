@@ -12,8 +12,9 @@
 
 ## Estado actual del trabajo
 - [*] `TOOL-01` completado: cliente HTTP + script base del sembrador, login admin, salud, manejo de errores del contrato y validación con Docker (`node --test`).
-- [/] `TOOL-02` y `TOOL-03` en progreso: sembrado paginado e idempotente de libros/socios/préstamos, fechas vencidas según ADR-RL-006 y verificación del reporte; prueba Docker 7/7 verde, falta verificar contra la API integrada.
-- [/] `TOOL-04` en progreso: Dockerfile creado; queda integrar el perfil de ejecución en infra y probar contra la API real.
+- [*] `TOOL-02` completado: sembrado paginado e idempotente de al menos 40 libros y 10 socios; verificado en la API real y segunda ejecución no duplicó datos.
+- [*] `TOOL-03` completado: 15 préstamos, exactamente 3 líneas vencidas y filas de reporte verificados en la API real; fechas locales según ADR-RL-006.
+- [*] `TOOL-04` completado: imagen Docker y perfil opcional Compose integrados; `docker compose --profile tool run --rm tool` completó la siembra.
 
 ## Tareas de este repo (maestro §9.10)
 `TOOL-01`…`TOOL-04`. Modelo: `opencode/deepseek-v4-flash`.
