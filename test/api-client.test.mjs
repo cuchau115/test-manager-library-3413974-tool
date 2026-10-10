@@ -72,6 +72,7 @@ before(async () => {
     if (url.pathname === "/api/v1/books" && request.method === "POST") {
       const item = {
         id: `book-${state.books.length + 1}`,
+        available_copies: body.total_copies,
         ...body,
       };
       state.books.push(item);
@@ -100,12 +101,50 @@ before(async () => {
     if (url.pathname === "/api/v1/loans" && request.method === "POST") {
       const item = {
         id: `loan-${state.loans.length + 1}`,
+        loaned_at: body.loaned_at ?? new Date().toISOString(),
         ...body,
         status: "open",
       };
       state.loans.push(item);
       response.writeHead(201, { "Content-Type": "application/json" });
       response.end(JSON.stringify(item));
+      return;
+    }
+
+    if (url.pathname === "/api/v1/loans" && request.method === "GET") {
+      response.writeHead(200, { "Content-Type": "application/json" });
+      response.end(JSON.stringify({ items: state.loans, page: 1, size: 50, total: state.loans.length }));
+      return;
+    }
+
+    if (url.pathname === "/api/v1/loans/overdue" && request.method === "GET") {
+      const items = state.loans
+        .filter((loan) => Date.parse(loan.loaned_at) + 14 * 24 * 60 * 60 * 1000 < Date.now())
+        .map((loan) => ({
+          loan_id: loan.id,
+          item_id: `${loan.id}-item`,
+          book_title: "Libro demo",
+          member_name: "Socio demo",
+          due_at: new Date(Date.parse(loan.loaned_at) + 14 * 24 * 60 * 60 * 1000).toISOString(),
+          days_late: 1,
+        }));
+      response.writeHead(200, { "Content-Type": "application/json" });
+      response.end(JSON.stringify({ items, page: 1, size: 50, total: items.length }));
+      return;
+    }
+
+    if (url.pathname === "/api/v1/reports/most-borrowed" && request.method === "GET") {
+      response.writeHead(200, { "Content-Type": "application/json" });
+      response.end(JSON.stringify({
+        from: url.searchParams.get("from"),
+        to: url.searchParams.get("to"),
+        rows: state.loans.length ? [{
+          book_id: "book-1",
+          book_title: "Libro demo",
+          category_name: "Novela",
+          times_borrowed: state.loans.length,
+        }] : [],
+      }));
       return;
     }
 
@@ -189,6 +228,7 @@ describe("ApiClient", () => {
     assert.match(stdout, /Salud de la API: ok/);
     assert.match(stdout, /Sembrado completado: 40 libros creados/);
     assert.match(stdout, /15 préstamos creados/);
+    assert.match(stdout, /3 líneas vencidas y 1 filas de reporte/);
     assert.equal(stderr, "");
     assert.doesNotMatch(stdout, /test-token/);
   });

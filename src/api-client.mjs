@@ -88,10 +88,11 @@ export class ApiClient {
 
   async listCategories() {
     const result = await this.request("categories");
-    if (!Array.isArray(result)) {
+    const categories = Array.isArray(result) ? result : result?.items;
+    if (!Array.isArray(categories)) {
       throw new Error("GET /categories no devolvió una lista.");
     }
-    return result;
+    return categories;
   }
 
   async listBooks({ q = "", categoryId = null, page = 1, size = 50 } = {}) {
@@ -100,10 +101,21 @@ export class ApiClient {
     if (categoryId) query.set("category_id", categoryId);
 
     const result = await this.request(`books?${query.toString()}`);
-    if (!result || typeof result !== "object" || !Array.isArray(result.items)) {
+    if (
+      !result ||
+      typeof result !== "object" ||
+      !Array.isArray(result.items) ||
+      !Number.isInteger(result.page) ||
+      !Number.isInteger(result.size) ||
+      !Number.isInteger(result.total)
+    ) {
       throw new Error("GET /books no devolvió la estructura paginada esperada.");
     }
     return result;
+  }
+
+  async listAllBooks() {
+    return this.listAllPages((page, size) => this.listBooks({ page, size }));
   }
 
   async createBook(payload) {
@@ -122,10 +134,21 @@ export class ApiClient {
     if (q) query.set("q", q);
 
     const result = await this.request(`members?${query.toString()}`);
-    if (!result || typeof result !== "object" || !Array.isArray(result.items)) {
+    if (
+      !result ||
+      typeof result !== "object" ||
+      !Array.isArray(result.items) ||
+      !Number.isInteger(result.page) ||
+      !Number.isInteger(result.size) ||
+      !Number.isInteger(result.total)
+    ) {
       throw new Error("GET /members no devolvió la estructura paginada esperada.");
     }
     return result;
+  }
+
+  async listAllMembers() {
+    return this.listAllPages((page, size) => this.listMembers({ page, size }));
   }
 
   async createMember(payload) {
@@ -148,5 +171,75 @@ export class ApiClient {
       throw new Error("POST /loans no devolvió un préstamo válido.");
     }
     return result;
+  }
+
+  async listLoans({ page = 1, size = 50 } = {}) {
+    const query = new URLSearchParams({ page: String(page), size: String(size) });
+    const result = await this.request(`loans?${query.toString()}`);
+    if (
+      !result ||
+      typeof result !== "object" ||
+      !Array.isArray(result.items) ||
+      !Number.isInteger(result.page) ||
+      !Number.isInteger(result.size) ||
+      !Number.isInteger(result.total)
+    ) {
+      throw new Error("GET /loans no devolvió la estructura paginada esperada.");
+    }
+    return result;
+  }
+
+  async listAllLoans() {
+    return this.listAllPages((page, size) => this.listLoans({ page, size }));
+  }
+
+  async listOverdue({ page = 1, size = 50 } = {}) {
+    const query = new URLSearchParams({ page: String(page), size: String(size) });
+    const result = await this.request(`loans/overdue?${query.toString()}`);
+    if (
+      !result ||
+      typeof result !== "object" ||
+      !Array.isArray(result.items) ||
+      !Number.isInteger(result.page) ||
+      !Number.isInteger(result.size) ||
+      !Number.isInteger(result.total)
+    ) {
+      throw new Error("GET /loans/overdue no devolvió una lista.");
+    }
+    return result;
+  }
+
+  async listAllOverdue() {
+    return this.listAllPages((page, size) => this.listOverdue({ page, size }));
+  }
+
+  async getLoan(id) {
+    const result = await this.request(`loans/${encodeURIComponent(id)}`);
+    if (!result || typeof result !== "object" || result.id !== id || !Array.isArray(result.items)) {
+      throw new Error("GET /loans/{id} no devolvió un préstamo válido.");
+    }
+    return result;
+  }
+
+  async mostBorrowed(from, to) {
+    const query = new URLSearchParams({ from, to });
+    const result = await this.request(`reports/most-borrowed?${query.toString()}`);
+    if (!result || typeof result !== "object" || !Array.isArray(result.rows)) {
+      throw new Error("GET /reports/most-borrowed no devolvió filas.");
+    }
+    return result;
+  }
+
+  async listAllPages(fetchPage, size = 50) {
+    const firstPage = await fetchPage(1, size);
+    const items = [...firstPage.items];
+    for (let page = 2; items.length < firstPage.total; page += 1) {
+      const result = await fetchPage(page, size);
+      if (result.items.length === 0) {
+        throw new Error("La API devolvió una página vacía antes de alcanzar el total indicado.");
+      }
+      items.push(...result.items);
+    }
+    return items;
   }
 }

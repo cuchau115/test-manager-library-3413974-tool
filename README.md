@@ -63,7 +63,15 @@ estas variables en el entorno del contenedor:
 
 No guardes credenciales en este repositorio. El script comprueba el login del administrador y la salud
 de la API, y nunca imprime el token. El cliente añade `Authorization: Bearer` en las llamadas
-protegidas y representa los errores con `ApiError`, usando el cuerpo común del contrato.
+protegidas y representa los errores con `ApiError`, usando el cuerpo común del contrato. El sembrador
+recorre la paginación respetando el máximo de 50 elementos por página y agrega datos por medio de la
+API: al menos 40 libros, 10 socios y 15 préstamos. Para los tres préstamos vencidos envía `loaned_at`,
+que solo debe honrarse cuando la API corre con `APP_ENV=local` (ADR-RL-006); en otros entornos el
+contrato de producción mantiene la fecha actual.
+
+Al terminar, el script verifica que existan al menos 40 libros y 10 socios, exactamente tres líneas
+vencidas y filas en el reporte de más prestados. Los datos de acceso se leen de variables de entorno;
+el token no se imprime ni se guarda en disco.
 
 Cuando esté disponible la imagen y el servicio de Compose (`TOOL-04`), se ejecutará desde `infra`:
 

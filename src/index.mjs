@@ -19,73 +19,95 @@ async function seedBooks(api) {
     throw new Error("La API no devolvió categorías para sembrar libros.");
   }
 
-  const currentBooks = await api.listBooks({ page: 1, size: 200 });
-  const existingCount = currentBooks.items.length;
+  const currentBooks = await api.listAllBooks();
   let created = 0;
+  const usedIsbns = new Set(currentBooks.map((book) => book.isbn));
 
-  for (let index = 0; index < BOOK_COUNT - existingCount; index += 1) {
-    const category = categories[index % categories.length];
-    const number = existingCount + index + 1;
+  while (currentBooks.length < BOOK_COUNT) {
+    const number = currentBooks.length + 1;
+    let isbnNumber = number;
+    let isbn = buildIsbn(isbnNumber);
+    while (usedIsbns.has(isbn)) {
+      isbnNumber += 1;
+      isbn = buildIsbn(isbnNumber);
+    }
+    const category = categories[created % categories.length];
 
     const book = await api.createBook({
       title: `Libro demo ${number}`,
       author: `Autor ${number}`,
-      isbn: buildIsbn(number),
+      isbn,
       category_id: category.id,
       total_copies: 2,
     });
 
-    created += book ? 1 : 0;
+    currentBooks.push(book);
+    usedIsbns.add(isbn);
+    created += 1;
   }
 
   return { created, categories };
 }
 
 async function seedMembers(api) {
-  const currentMembers = await api.listMembers({ page: 1, size: 200 });
-  const existingCount = currentMembers.items.length;
+  const currentMembers = await api.listAllMembers();
   let created = 0;
 
-  for (let index = 0; index < MEMBER_COUNT - existingCount; index += 1) {
-    const number = existingCount + index + 1;
+  while (currentMembers.length < MEMBER_COUNT) {
+    const number = currentMembers.length + 1;
     const member = await api.createMember({
       full_name: `Socio demo ${number}`,
       document_number: `DOC-${String(100000 + number).padStart(8, "0")}`,
     });
-    created += member ? 1 : 0;
+    currentMembers.push(member);
+    created += 1;
   }
 
   return { created };
 }
 
-async function seedLoans(api, memberIds, bookIds) {
+async function seedLoans(api, members, books) {
+  if (members.length < 3) {
+    throw new Error("Se necesitan al menos 3 socios para crear préstamos vencidos sin bloquear los demás.");
+  }
+
+  const currentLoans = await api.listAllLoans();
   const loans = [];
-  const memberAssignment = memberIds.slice();
-  const sortedBooks = [...bookIds];
+  const availableBooks = books.filter((book) => book.available_copies > 0);
+  let bookIndex = 0;
+  const loansToCreate = Math.max(0, LOAN_COUNT - currentLoans.length);
 
-  for (let index = 0; index < LOAN_COUNT; index += 1) {
-    const memberId = memberAssignment[index % memberAssignment.length];
-    const itemsCount = 1 + (index % 3);
-    const selectedBooks = [];
-
-    for (let itemIndex = 0; itemIndex < itemsCount; itemIndex += 1) {
-      const bookId = sortedBooks[(index * 3 + itemIndex) % sortedBooks.length];
-      if (!selectedBooks.includes(bookId)) {
-        selectedBooks.push(bookId);
-      }
+  for (let offset = 0; offset < loansToCreate; offset += 1) {
+    while (bookIndex < availableBooks.length && availableBooks[bookIndex].available_copies < 1) {
+      bookIndex += 1;
+    }
+    const book = availableBooks[bookIndex];
+    if (!book) {
+      throw new Error("No hay ejemplares disponibles para completar los préstamos de demostración.");
     }
 
-    const loanedAt = index < OVERDUE_LOAN_COUNT
-      ? new Date(Date.now() - (20 + index) * 24 * 60 * 60 * 1000)
+    const loanNumber = currentLoans.length + offset;
+    const isOverdue = loanNumber < OVERDUE_LOAN_COUNT;
+    const memberIndex = isOverdue
+      ? loanNumber
+      : 3 + ((loanNumber - OVERDUE_LOAN_COUNT) % (members.length - 3));
+
+    const loanedAt = isOverdue
+      ? new Date(Date.now() - (20 + loanNumber) * 24 * 60 * 60 * 1000)
       : new Date();
 
-    const loan = await api.createLoan({
-      member_id: memberId,
-      loaned_at: toIso(loanedAt),
-      items: selectedBooks.map((bookId) => ({ book_id: bookId })),
-    });
+    const payload = {
+      member_id: members[memberIndex].id,
+      items: [{ book_id: book.id }],
+    };
+    if (isOverdue) {
+      payload.loaned_at = toIso(loanedAt);
+    }
+    const loan = await api.createLoan(payload);
 
     loans.push(loan);
+    book.available_copies -= 1;
+    bookIndex += 1;
   }
 
   return loans;
@@ -95,16 +117,27 @@ async function runSeeder(api) {
   const booksState = await seedBooks(api);
   const membersState = await seedMembers(api);
 
-  const books = await api.listBooks({ page: 1, size: 200 });
-  const members = await api.listMembers({ page: 1, size: 200 });
+  const books = await api.listAllBooks();
+  const members = await api.listAllMembers();
 
-  const memberIds = members.items.map((member) => member.id);
-  const bookIds = books.items.map((book) => book.id);
+  if (books.length < BOOK_COUNT || members.length < MEMBER_COUNT) {
+    throw new Error("No se alcanzaron los mínimos de libros y socios requeridos.");
+  }
 
-  const loans = await seedLoans(api, memberIds, bookIds);
+  const loans = await seedLoans(api, members, books);
+  const overdue = await api.listAllOverdue();
+  if (overdue.length !== OVERDUE_LOAN_COUNT) {
+    throw new Error(`Se esperaban ${OVERDUE_LOAN_COUNT} líneas vencidas y la API devolvió ${overdue.length}.`);
+  }
+
+  const today = new Date().toISOString().slice(0, 10);
+  const report = await api.mostBorrowed("2000-01-01", today);
+  if (!report.rows.length) {
+    throw new Error("El reporte de libros más prestados no devolvió filas.");
+  }
 
   console.log(`Sembrado completado: ${booksState.created} libros creados, ${membersState.created} socios creados, ${loans.length} préstamos creados.`);
-  console.log(`Total final: ${books.items.length} libros, ${members.items.length} socios.`);
+  console.log(`Total final: ${books.length} libros, ${members.length} socios, ${overdue.length} líneas vencidas y ${report.rows.length} filas de reporte.`);
 }
 
 async function main() {
