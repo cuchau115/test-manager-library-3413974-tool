@@ -84,3 +84,11 @@ Las pruebas del cliente se ejecutan con Node dentro de Docker, desde `infra`:
 ```sh
 docker compose -f ../test-manager-library-3413974-tool/docker-compose.test.yml run --rm tool-tests
 ```
+
+La verificación RNF-1 crea temporalmente 5.000 libros mediante la API, mide cinco búsquedas y exige
+que todas respondan en menos de 300 ms. Los libros de carga se dan de baja lógicamente al terminar,
+incluso si una medición falla:
+
+```sh
+docker compose --profile tool run --rm --entrypoint node tool src/load-test.mjs
+```
